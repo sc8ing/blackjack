@@ -46,10 +46,13 @@ data Rules = Rules
   , _minBet :: Int
   } deriving (Show)
 
+type MoveChooser = GameState -> Card -> Hand -> Move
+type BetChooser = GameState -> Float
+type InsuranceChooser = GameState -> Hand -> Bool
 data Strategy = Strategy
-  { _chooseMove :: GameState -> Card -> Hand -> Move
-  , _chooseBet :: GameState -> Float
-  , _chooseInsurance :: GameState -> Hand -> Bool
+  { _chooseMove :: MoveChooser
+  , _chooseBet :: BetChooser
+  , _chooseInsurance :: InsuranceChooser
   }
 
 data GameState = GameState

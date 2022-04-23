@@ -17,23 +17,26 @@ import Debug.Trace
 
 main :: IO ()
 main = playShoes 50 >>= print
-playShoes n = (/ n) . sum <$> traverse (const (_bankroll <$> runPlayNewShoe)) [1..n]
 
-runPlayNewShoe :: MonadRandom m => m GameState
-runPlayNewShoe = do
-      let rules = Rules { _shoeDecks = 6
-                        , _penetration = 0.8
-                        , _minBet = 5 }
-          playerStrategy = Strategy chooseMove chooseBet chooseInsurance
-      shoe <- makeShoe (_shoeDecks rules) (_penetration rules)
-      let gameState = GameState { _cardsUnplayed = shoe
-                                , _cardsPlayed = []
-                                , _bankroll = 1000
-                                , _rules = rules
-                                , _playerStrategy = playerStrategy
-                                }
-          (_, finalState) = runState playShoe gameState
-      pure finalState
+playShoes :: (MonadIO m, MonadRandom m) => Int -> m Float
+playShoes n = do
+    moveChooser <- loadChooseMoveFromCsv "hard.csv" "soft.csv" "split.csv" "surrender.csv"
+    let rules = Rules { _shoeDecks = 6
+                      , _penetration = 0.8
+                      , _minBet = 5 }
+    shoe <- makeShoe (_shoeDecks rules) (_penetration rules)
+    let initState = GameState { _cardsUnplayed = shoe
+                              , _cardsPlayed = []
+                              , _bankroll = 1000
+                              , _rules = rules
+                              , _playerStrategy = Strategy moveChooser chooseBet chooseInsurance }
+    endBankrolls <- traverse (const (_bankroll <$> runPlayNewShoe initState)) [1..n]
+    pure $ sum endBankrolls / fromIntegral n
+
+runPlayNewShoe :: MonadRandom m => GameState -> m GameState
+runPlayNewShoe initState =
+    let (_, finalState) = runState playShoe initState in
+    pure finalState
 
 playShoe :: (MonadState GameState m) => m ()
 playShoe = do
@@ -146,6 +149,9 @@ adjustBankroll amount = do
 ----------------------------------------------------------------------------------------------------
 -- Player choice functions
 ----------------------------------------------------------------------------------------------------
+loadChooseMoveFromCsv :: MonadIO m => FilePath -> FilePath -> FilePath -> FilePath -> m MoveChooser
+loadChooseMoveFromCsv hard soft split surrender = pure chooseMove
+
 chooseMove :: GameState -> Card -> Hand -> Move
 chooseMove _ dealerUp playerHand =
   case cardSum playerHand of

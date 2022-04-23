@@ -17,25 +17,20 @@ import Debug.Trace
 
 main :: IO ()
 main = playShoes 50 >>= print
-
 playShoes n = (/ n) . sum <$> traverse (const (_bankroll <$> runPlayNewShoe)) [1..n]
-
-makeShoe :: (MonadRandom m) => Int -> Float -> m [Card]
-makeShoe decks penetration = do
-    initDecks <- shuffleM $ [Two .. Ace] >>= replicate 4 >>= replicate decks
-    let (shoe1, shoe2) = splitAt (floor (penetration * fromIntegral (length initDecks))) initDecks
-    pure $ shoe1 <> [Yellow] <> shoe2
 
 runPlayNewShoe :: MonadRandom m => m GameState
 runPlayNewShoe = do
-      let settings = Settings { _shoeDecks = 6
-                              , _penetration = 0.8
-                              , _minBet = 5 }
-      shoe <- makeShoe (_shoeDecks settings) (_penetration settings)
+      let rules = Rules { _shoeDecks = 6
+                        , _penetration = 0.8
+                        , _minBet = 5 }
+          playerStrategy = Strategy chooseMove chooseBet chooseInsurance
+      shoe <- makeShoe (_shoeDecks rules) (_penetration rules)
       let gameState = GameState { _cardsUnplayed = shoe
                                 , _cardsPlayed = []
                                 , _bankroll = 1000
-                                , _settings = settings
+                                , _rules = rules
+                                , _playerStrategy = playerStrategy
                                 }
           (_, finalState) = runState playShoe gameState
       pure finalState
@@ -139,11 +134,6 @@ playOutHand hand bet dealerUp dealerDown =
                 else                             adjustBankroll bet
         traverse_ doHandVsDealer handBets
 
--- drawN :: Int -> State GameState Hand
--- drawN n = traverse (const drawShownCard) [1..n]
-draw2 :: MonadState GameState m => m (Card, Card)
-draw2 = drawShownCard >>= \c1 -> drawShownCard >>= \c2 -> pure (c1, c2)
-
 adjustBankroll :: MonadState GameState m => Float -> m Float
 adjustBankroll amount = do
   s <- get
@@ -151,25 +141,11 @@ adjustBankroll amount = do
   put s { _bankroll = new }
   pure new
 
-drawHiddenCard :: MonadState GameState m => m Card
-drawHiddenCard = drawCard True
 
-drawShownCard :: MonadState GameState m => m Card
-drawShownCard = drawCard False
 
-drawCard :: MonadState GameState m => Bool -> m Card
-drawCard silent = do
-    state <- get
-    -- shoe' should never be empty because we don't do full penetration
-    let (card : shoe') = _cardsUnplayed state
-    put state { _cardsUnplayed = shoe' }
-    state <- get
-    if card == Yellow
-    then put state { _cardsPlayed = card : _cardsPlayed state } >> drawCard silent
-    else if silent
-         then pure card
-         else put state { _cardsPlayed = card : _cardsPlayed state } >> pure card
-
+----------------------------------------------------------------------------------------------------
+-- Player choice functions
+----------------------------------------------------------------------------------------------------
 chooseMove :: GameState -> Card -> Hand -> Move
 chooseMove _ dealerUp playerHand =
   case cardSum playerHand of
@@ -182,16 +158,10 @@ chooseBet :: GameState -> Float
 chooseBet state = max 25 (trueCount - 1) * 25 where
     trueCount   = fromIntegral (runningCount played) / decksLeft
     played      = _cardsPlayed state
-    decksLeft   = fromIntegral (_shoeDecks . _settings $ state) - decksPlayed
+    decksLeft   = fromIntegral (_shoeDecks . _rules $ state) - decksPlayed
     decksPlayed = cardsPlayed / cardsInDeck
     cardsPlayed = fromIntegral (length played) :: Float
     cardsInDeck = 52
-
--- Hi-Lo count of cards played
-runningCount :: [Card] -> Int
-runningCount = sum . map (\c -> if c `elem` [Two .. Six]      then  1
-                                else if c `elem` [Ten .. Ace] then -1
-                                else                                0)
 
 chooseInsurance :: GameState -> Hand -> Bool
 chooseInsurance _ _ = False

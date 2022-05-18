@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use newtype instead of data" #-}
 {-# LANGUAGE FlexibleContexts #-}
-module Lib where
+module GameCore where
 
 import Data.Map (Map, (!))
 import qualified Data.Map as Map
@@ -39,6 +39,15 @@ data Move = Stand
           | Double
           | Split
           | Surrender
+  deriving (Show, Eq)
+instance Read Move where
+  readsPrec _ s = case s of
+    ['s']      -> [(Stand, "")]
+    ['h']      -> [(Hit, "")]
+    ['d']      -> [(Double, "")]
+    ['s', 'p'] -> [(Split, "")]
+    ['s', 'u'] -> [(Surrender, "")]
+    _ -> error $ "Couldn't parse move from " <> s
 
 data Rules = Rules
   { _shoeDecks :: Int
@@ -77,11 +86,20 @@ handScoreInt :: HandScore -> Int
 handScoreInt (Soft n) = n
 handScoreInt (Hard n) = n
 
--- Hi-Lo count of cards played
+-- | Hi-Lo count of cards played
 runningCount :: [Card] -> Int
 runningCount = sum . map (\c -> if c `elem` [Two .. Six]      then  1
                                 else if c `elem` [Ten .. Ace] then -1
                                 else                                0)
+
+trueCount :: Int -> [Card] -> Float
+trueCount shoeDecks cardsPlayed =
+    let cardsInDeck    = 52
+        numCardsPlayed = length cardsPlayed
+        decksPlayed    = fromIntegral numCardsPlayed / cardsInDeck
+        decksLeft      = fromIntegral shoeDecks - decksPlayed
+    in
+    fromIntegral (runningCount cardsPlayed) / decksLeft
 
 ----------------------------------------------------------------------------------------------------
 -- setup

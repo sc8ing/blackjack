@@ -25,6 +25,8 @@ dependencies:
 - MonadRandom
 - random-shuffle == 0.0.4
 - containers >= 0.6.0.0
+- csv
+- split
 
 library:
   source-dirs: src

@@ -6,40 +6,63 @@ module CsvLoading
 where
 
 import Control.Monad.Cont
-import GameCore
-import Text.CSV (CSV, parseCSVFromFile)
 import Data.Char (isNumber)
 import Data.List.Split (splitOn)
+import GameCore
+import Text.CSV (CSV, parseCSVFromFile)
+import Debug.Trace (trace, traceShowId)
+import Text.Printf (printf)
 
 loadChooseMoveFromCsv :: (MonadFail m, MonadIO m) => FilePath -> FilePath -> FilePath -> FilePath -> m MoveChooser
 loadChooseMoveFromCsv hard soft split surrender = do
-    [ surrenderHandler,
-      splitHandler,
+    [ rawSurrenderHandler,
       softHandler,
-      hardHandler ] <- forM [surrender, split, soft, hard] $ \filePath ->
+      hardHandler ] <- forM [surrender, soft, hard] $ \filePath ->
         liftIO (parseCSVFromFile filePath) >>= \case
             Left parseError -> error $ show parseError
             Right csv -> pure $ \state dealerUp hand ->
-                let dealerScore = (handScoreInt . cardSum) [dealerUp]
+                let dealerScore = if dealerUp == Ace then 11
+                                  else (handScoreInt . cardSum) [dealerUp]
                     handScore   = (handScoreInt . cardSum) hand
-                    rawMove     = getRowColumn csv handScore dealerScore
-                    count = trueCount (_shoeDecks . _rules $ state) (_cardsPlayed state)
+                    rawMove     = getRowColumn csv (22 - handScore) (dealerScore - 1)
+                    count       = trueCount (_shoeDecks . _rules $ state) (_cardsPlayed state)
                 in
                 case parseRawCsvMove rawMove of
                   Left unconditionalMove ->
                       unconditionalMove
                   Right (aboveMove, threshCount, belowMove) ->
                       if count >= threshCount then aboveMove else belowMove
+    splitHandler <- liftIO (parseCSVFromFile split) >>= \case
+        Left parseError -> error $ show parseError
+        Right csv -> pure $ \state dealerUp hand -> case hand of
+                                                      [c1, c2] | c1 == c2 ->
+                                                          let dealerScore = if dealerUp == Ace then 11
+                                                                            else (handScoreInt . cardSum) [dealerUp]
+                                                              cardNum = (handScoreInt . cardSum) [c1]
+                                                              count = trueCount (_shoeDecks . _rules $ state) (_cardsPlayed state)
+                                                              rawMove = getRowColumn csv (12 - cardNum) (dealerScore - 1)
+                                                          in
+                                                          Just $ case parseRawCsvMove rawMove of
+                                                            Left unconditionalMove ->
+                                                                unconditionalMove
+                                                            Right (aboveMove, threshCount, belowMove) ->
+                                                                if count >= threshCount then aboveMove else belowMove
+                                                      _ -> Nothing
+    let wrapHandler validHandlerMove handler = \s up hand -> mfilter (== validHandlerMove) $ Just (handler s up hand)
+        [surrenderHandler] = [ wrapHandler Surrender rawSurrenderHandler ]
     pure $ \state dealerUp hand ->
-        let runHandler = \handler -> handler state dealerUp hand in
-        case cardSum hand of
-            Soft handScore ->
-                if runHandler splitHandler == Split then Split
-                else runHandler softHandler
-            Hard handScore ->
-                if runHandler surrenderHandler == Surrender then Surrender
-                else if runHandler splitHandler == Split then Split
-                else runHandler hardHandler
+        let count = trueCount (_shoeDecks . _rules $ state) (_cardsPlayed state) in
+        trace (show hand <> " vs " <> show dealerUp <> " (true " <> printf "%.1g" count <> "): ") $ traceShowId $
+        let runHandler = \handler -> handler state dealerUp hand
+            maybeMove = dropWhile (== Nothing) $ runHandler <$> [trace "running surrender" surrenderHandler, trace "running split" splitHandler,
+                                    \s up hand -> Just $ (case cardSum hand of
+                                        Soft _ -> trace "running soft" softHandler
+                                        Hard _ -> trace "running hard" hardHandler) s up hand
+                                  ]
+        in
+        case maybeMove of
+          Just move : _-> move
+          _ -> error "oh no"
 
 -- | Either a move to make unconditionally, or a tuple (aboveMove, threshCount, belowMove) where
 -- | `aboveMove` should be made if the count is at or above `threshCount` and `belowMove` otherwise

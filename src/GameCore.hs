@@ -3,11 +3,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 module GameCore where
 
+import Control.Monad.Random
+import Control.Monad.State
+import Data.Char (toLower)
 import Data.Map (Map, (!))
 import qualified Data.Map as Map
-import Control.Monad.Random
 import System.Random.Shuffle
-import Control.Monad.State
 
 data Card = Two
           | Three
@@ -41,7 +42,7 @@ data Move = Stand
           | Surrender
   deriving (Show, Eq)
 instance Read Move where
-  readsPrec _ s = case s of
+  readsPrec _ s = case toLower <$> s of
     ['s']      -> [(Stand, "")]
     ['h']      -> [(Hit, "")]
     ['d']      -> [(Double, "")]

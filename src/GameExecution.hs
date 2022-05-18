@@ -18,7 +18,7 @@ import Text.CSV
 
 playShoes :: (MonadIO m, MonadRandom m, MonadFail m) => Int -> m Float
 playShoes n = do
-    moveChooser <- loadChooseMoveFromCsv "hard.csv" "soft.csv" "split.csv" "surrender.csv"
+    moveChooser <- loadChooseMoveFromCsv "strategies/test/hard.csv" "strategies/test/soft.csv" "strategies/test/split.csv" "strategies/test/surrender.csv"
     let betChooser = const (5 :: Float)
         insuranceChooser = const. const False
     let rules = Rules { _shoeDecks = 6
@@ -87,10 +87,12 @@ playOutHand hand bet dealerUp dealerDown =
             Soft n | n > 21 ->
                 pure []
             Soft n | n == 21 ->
-                if length curHand == 2 then error "should have already checked for blackjack" else
+                -- TODO blackjack or just 21?
+                -- if length curHand == 2 then Stand else
                 pure [(curHand, curBet)]
             Hard n | n == 21 ->
-                if length curHand == 2 then error "should have already checked for blackjack" else
+                -- TODO blackjack?
+                -- if length curHand == 2 then error "should have already checked for blackjack" else
                 pure [(curHand, curBet)]
             -- If we don't have blackjack & haven't busted, decide what to do
             _ -> get >>= \state -> case (_chooseMove . _playerStrategy) state state dealerUp curHand of

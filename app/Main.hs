@@ -11,37 +11,51 @@ import CsvLoading (loadChooseMoveFromCsv)
 import Data.IORef
 import GHC.IO (catch)
 import Text.Read (readMaybe, readEither)
+import Debug.Trace
+import Control.Monad.Random
+import Data.Default
 
 main :: IO ()
 main = do
   putStrLn "loading initial strategy"
-  initBank  <- prompt "Starting bankroll: "
   initRules <- askForRules
   initStrat <- askForStrat
-  initShoe  <- makeShoe (_shoeDecks initRules) (_penetration initRules)
-  stateRef  <- newIORef GameState { _cardsUnplayed = initShoe
-                                  , _cardsPlayed = []
-                                  , _bankroll = initBank
-                                  , _rules = initRules
-                                  , _playerStrategy = initStrat }
+  initBank  <- promptDefault 1000 "Starting bankroll: "
+  initState <- makeGameState initRules initStrat initBank
+  stateRef  <- newIORef initState
   repl stateRef
+
+makeGameState :: MonadRandom m => Rules -> Strategy -> Float -> m GameState
+makeGameState rules strategy bankroll = do
+  initShoe  <- makeShoe (_shoeDecks rules) (_penetration rules)
+  pure GameState { _cardsUnplayed = initShoe
+                 , _cardsPlayed = []
+                 , _bankroll = bankroll
+                 , _rules = rules
+                 , _playerStrategy = strategy }
+
+resetGameState :: MonadRandom m => GameState -> m GameState
+resetGameState state =
+    makeGameState (_rules state) (_playerStrategy state) (_bankroll state)
 
 repl :: IORef GameState -> IO ()
 repl stateRef = (words <$> getLine) >>= \case
   ["play", n] -> case (readMaybe n :: Maybe Int) of
     Nothing ->
-      putStrLn "play [number of shoes]" >> repl stateRef
+      putStrLn "play" >> repl stateRef
     Just n -> do
-      strat <- readIORef stateRef
-      result <- playShoes strat n
+      state <- readIORef stateRef
+      let result = playShoes state n
       print result
+      state' <- resetGameState state
+      writeIORef stateRef state'
       repl stateRef
   ["set", "bankroll", n] ->
     case (readMaybe n :: Maybe Float) of
       Nothing ->
         putStrLn "set bankroll [dollars]" >> repl stateRef
       Just n -> do
-        modifyIORef stateRef (\s -> s { _bankroll = n })
+        modifyIORef stateRef (\s -> s { _bankroll = n }) >> repl stateRef
   "load" : toLoad ->
     let modifyStrat f =
           readIORef stateRef >>= (\curState ->
@@ -49,12 +63,12 @@ repl stateRef = (words <$> getLine) >>= \case
             modifyIORef stateRef (\s -> s { _playerStrategy = f (_playerStrategy curState) })
           )
     in
-    case toLoad of
+    (case toLoad of
       ["move"] -> do
         move <- askForMoveChooser
         modifyStrat (\s -> s { _chooseMove = move })
       ["bet"] -> do
-        bet <- askForBetChooser
+        bet <- askForBetChooser []
         modifyStrat (\s -> s { _chooseBet = bet })
       ["insurance"] -> do
         ins <- askForInsuranceChooser
@@ -63,7 +77,7 @@ repl stateRef = (words <$> getLine) >>= \case
         strat <- askForStrat
         modifyStrat (const strat)
       _ ->
-        putStrLn "can load move, bet, or insurance" >> repl stateRef
+        putStrLn "can load move, bet, or insurance") >> repl stateRef
   h : _ | h `elem` ["q", "quit"]  ->
     putStrLn "bye, keep gambling!"
   _ ->
@@ -83,15 +97,38 @@ prompt toSay = do
     Left err ->
       putStrLn err >> prompt toSay
 
+promptDefault :: (Show a, Read a) => a -> String -> IO a
+promptDefault def toSay = do
+  putStr (toSay <> " (default " <> show def <> ") ")
+  input <- getLine
+  putStrLn input
+  if input == ""
+     then putStrLn "using default" >> pure def
+     else case readEither input of
+              Right a ->
+                pure a
+              Left err ->
+                putStrLn err >> promptDefault def toSay
+
+-- Gross but idk how to make it not require "" when `Read`ing a string
+promptDefaultString :: String -> String -> IO String
+promptDefaultString def toSay = do
+  putStr (toSay <> " (default " <> def <> ") ")
+  input <- getLine
+  if input == ""
+     then putStrLn "using default" >> pure def
+     else pure input
+
 askForRules :: IO Rules
 askForRules =
-  Rules <$> prompt "How many decks?"
-        <*> prompt "Percent penetration: "
-        <*> prompt "Min bet: "
+    let Rules decks pen min = def in
+    Rules <$> promptDefault decks "How many decks?"
+          <*> promptDefault pen "Percent penetration: "
+          <*> promptDefault min "Min bet: "
 
 askForStrat :: IO Strategy
 askForStrat =
-  Strategy <$> askForMoveChooser <*> askForBetChooser <*> askForInsuranceChooser
+  Strategy <$> askForMoveChooser <*> askForBetChooser [] <*> askForInsuranceChooser
 
 askForMoveChooser :: IO MoveChooser
 askForMoveChooser =
@@ -102,8 +139,30 @@ askForMoveChooser =
   _ ->
     askForMoveChooser
 
-askForBetChooser :: IO BetChooser
-askForBetChooser = pure $ const 5
+getThreshBet :: IO (Float, Float)
+getThreshBet = do
+    thresh <- prompt "count to change bet at: " :: IO Float
+    amount <- prompt "amount to bet at that count or higher: " :: IO Float
+    pure (thresh, amount)
+askForBetChooser :: [(Float, Float)] -> IO BetChooser
+askForBetChooser thresholds = promptDefaultString "no" "add bet strategy? (y/n)" >>= \case
+    "n" ->
+        pure (\state ->
+            let count = trueCountFromGameState state
+                minBet = fromIntegral $ (_minBet . _rules) state
+                takeClosestThresh =  (\(nextThres, nextBet) (curThresh, curBet) ->
+                    if nextThres > curThresh && count >= nextThres then (nextThres, nextBet)
+                                                                   else (curThresh, curBet))
+                (thresh, bet) = foldr takeClosestThresh (-10000, minBet) thresholds
+            in
+            bet
+        )
+    "y" ->
+        getThreshBet >>= \tb -> askForBetChooser (tb : thresholds)
+    _ ->
+        putStrLn "what" >> askForBetChooser thresholds
 
 askForInsuranceChooser :: IO InsuranceChooser
-askForInsuranceChooser = pure $ const . const True
+askForInsuranceChooser = do
+    thresh <- promptDefault 3 "at what count or above would you take insurance at?" :: IO Float
+    pure (\state hand -> trueCountFromGameState state >= thresh)

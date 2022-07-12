@@ -9,6 +9,7 @@ import Data.Char (toLower)
 import Data.Map (Map, (!))
 import qualified Data.Map as Map
 import System.Random.Shuffle
+import Data.Default
 
 data Card = Two
           | Three
@@ -55,6 +56,8 @@ data Rules = Rules
   , _penetration :: Float -- percent of shoe
   , _minBet :: Int
   } deriving (Show)
+instance Default Rules where
+  def = Rules 6 0.8 5
 
 type MoveChooser = GameState -> Card -> Hand -> Move
 type BetChooser = GameState -> Float
@@ -64,6 +67,11 @@ data Strategy = Strategy
   , _chooseBet :: BetChooser
   , _chooseInsurance :: InsuranceChooser
   }
+instance Default Strategy where
+  def = Strategy { _chooseMove = const . const . const Stand
+                 , _chooseBet = const 5
+                 , _chooseInsurance = const . const False
+                 }
 
 data GameState = GameState
   { _cardsUnplayed :: [Card]
@@ -101,6 +109,10 @@ trueCount shoeDecks cardsPlayed =
         decksLeft      = fromIntegral shoeDecks - decksPlayed
     in
     fromIntegral (runningCount cardsPlayed) / decksLeft
+
+trueCountFromGameState :: GameState -> Float
+trueCountFromGameState state =
+  trueCount (_shoeDecks . _rules $ state) (_cardsPlayed state)
 
 ----------------------------------------------------------------------------------------------------
 -- setup

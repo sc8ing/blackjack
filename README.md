@@ -1,11 +1,12 @@
 # blackjack
 
 ## TODO
-- add optional logging to make sure it's doing the right thing
+### Need
+- add default states to everything including basic strategy
 
-- make sure can't split two different ten valued cards
+### Ehh
+- add optional logging to make sure it's doing the right thing
 - add move, bet, insurance choosing functions to the game state rather than having top level functions
-- add input loading to main function for CSV args
 - multiple players
 - reflex UI
 - format with ormolu

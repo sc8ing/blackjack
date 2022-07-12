@@ -25,7 +25,7 @@ loadChooseMoveFromCsv hard soft split surrender = do
                                   else (handScoreInt . cardSum) [dealerUp]
                     handScore   = (handScoreInt . cardSum) hand
                     rawMove     = getRowColumn csv (22 - handScore) (dealerScore - 1)
-                    count       = trueCount (_shoeDecks . _rules $ state) (_cardsPlayed state)
+                    count       = trueCountFromGameState state
                 in
                 case parseRawCsvMove rawMove of
                   Left unconditionalMove ->
@@ -39,7 +39,7 @@ loadChooseMoveFromCsv hard soft split surrender = do
                                                           let dealerScore = if dealerUp == Ace then 11
                                                                             else (handScoreInt . cardSum) [dealerUp]
                                                               cardNum = (handScoreInt . cardSum) [c1]
-                                                              count = trueCount (_shoeDecks . _rules $ state) (_cardsPlayed state)
+                                                              count = trueCountFromGameState state
                                                               rawMove = getRowColumn csv (12 - cardNum) (dealerScore - 1)
                                                           in
                                                           Just $ case parseRawCsvMove rawMove of
@@ -51,7 +51,7 @@ loadChooseMoveFromCsv hard soft split surrender = do
     let wrapHandler validHandlerMove handler = \s up hand -> mfilter (== validHandlerMove) $ Just (handler s up hand)
         [surrenderHandler] = [ wrapHandler Surrender rawSurrenderHandler ]
     pure $ \state dealerUp hand ->
-        let count = trueCount (_shoeDecks . _rules $ state) (_cardsPlayed state) in
+        let count = trueCountFromGameState state in
         trace (show hand <> " vs " <> show dealerUp <> " (true " <> printf "%.1g" count <> "): ") $ traceShowId $
         let runHandler = \handler -> handler state dealerUp hand
             maybeMove = dropWhile (== Nothing) $ runHandler <$> [trace "running surrender" surrenderHandler, trace "running split" splitHandler,

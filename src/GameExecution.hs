@@ -16,15 +16,16 @@ import qualified System.Random.Shuffle
 import System.Random.Shuffle (shuffleM)
 import Text.CSV
 
-playShoes :: (MonadIO m, MonadRandom m, MonadFail m) => GameState -> Int -> m Float
-playShoes initState n = do
-    endBankrolls <- traverse (const (_bankroll <$> runPlayNewShoe initState)) [1..n]
-    pure $ sum endBankrolls / fromIntegral n
+-- | Play n shoes sequentially with the end state of each feeding into the next
+playShoes :: GameState -> Int -> Float
+playShoes initState n =
+    let endState = foldl (\state' _ -> runPlayNewShoe state') initState [1..n] in
+    _bankroll endState / fromIntegral n
 
-runPlayNewShoe :: MonadRandom m => GameState -> m GameState
+runPlayNewShoe :: GameState -> GameState
 runPlayNewShoe initState =
     let (_, finalState) = runState playShoe initState in
-    pure finalState
+    finalState
 
 playShoe :: (MonadState GameState m) => m ()
 playShoe = do

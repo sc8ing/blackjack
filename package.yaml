@@ -27,6 +27,7 @@ dependencies:
 - containers >= 0.6.0.0
 - csv
 - split
+- data-default
 
 library:
   source-dirs: src

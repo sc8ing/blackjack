@@ -16,17 +16,8 @@ import qualified System.Random.Shuffle
 import System.Random.Shuffle (shuffleM)
 import Text.CSV
 
-playShoes :: (MonadIO m, MonadRandom m, MonadFail m) => Strategy -> Int -> m Float
-playShoes strategy n = do
-    let rules = Rules { _shoeDecks = 6
-                      , _penetration = 0.8
-                      , _minBet = 5 }
-    shoe <- makeShoe (_shoeDecks rules) (_penetration rules)
-    let initState = GameState { _cardsUnplayed = shoe
-                              , _cardsPlayed = []
-                              , _bankroll = 1000
-                              , _rules = rules
-                              , _playerStrategy = strategy }
+playShoes :: (MonadIO m, MonadRandom m, MonadFail m) => GameState -> Int -> m Float
+playShoes initState n = do
     endBankrolls <- traverse (const (_bankroll <$> runPlayNewShoe initState)) [1..n]
     pure $ sum endBankrolls / fromIntegral n
 

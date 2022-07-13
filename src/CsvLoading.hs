@@ -76,9 +76,10 @@ parseRawCsvMove rawMove =
     case splitOn "/" rawMove of
         [move] -> Left (read move :: Move)
         [moveCond, alt] ->
-            let move = read $ takeWhile (not . isNumber) moveCond
+            let isPartOfCount c = isNumber c || c == '-' -- minus sign
+                move = read $ takeWhile (not . isPartOfCount) moveCond
                 altMove = read alt :: Move
-                countThresh = read $ dropWhile (not . isNumber) moveCond
+                countThresh = read $ dropWhile (not . isPartOfCount) moveCond
             in
             Right (move, countThresh, altMove)
         _ -> error ""

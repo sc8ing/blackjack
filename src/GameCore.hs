@@ -5,7 +5,7 @@ module GameCore where
 
 import Control.Monad.Random
 import Control.Monad.State
-import Data.Char (toLower)
+import Data.Char (toLower, isSpace)
 import Data.Default
 import Data.Map (Map, (!))
 import qualified Data.Map as Map
@@ -43,7 +43,7 @@ data Move = Stand
           | Surrender
   deriving (Show, Eq)
 instance Read Move where
-    readsPrec _ s = case toLower <$> s of
+    readsPrec _ s = case toLower <$> filter (not . isSpace) s of
         ['s']      -> [(Stand, "")]
         ['h']      -> [(Hit, "")]
         ['d']      -> [(Double, "")]

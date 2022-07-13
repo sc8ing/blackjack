@@ -1,19 +1,19 @@
-x,2,1,4,5,6,7,8,9,10,11
-21,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-20,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-19,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-18,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-17,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-16,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-15,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-14,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-11,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-12,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-11,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-10,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-9,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-8,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-7,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-6,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-5,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
-4,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S,D1/S
+ x,    2,   3,   4,   5,   6,   7,   8,    9,  10,  11
+21,    S,   S,   S,   S,   S,   S,   S,    S,   S,   S
+20,    S,   S,   S,   S,   S,   S,   S,    S,   S,   S
+19,    S,   S,   S,   S,   S,   S,   S,    S,   S,   S
+18,    S,   S,   S,   S,   S,   S,   S,    S,   S,   S
+17,    S,   S,   S,   S,   S,   S,   S,    S,   S,   S
+16,    S,   S,   S,   S,   S,   H,   H, S4/H,S0/H,S3/H
+15,    S,   S,   S,   S,   S,   H,   H,    H,S4/H,S5/H
+14,    S,   S,   S,   S,   S,   H,   H,    H,   H,   H
+13,S-1/H,   S,   S,   S,   S,   H,   H,    H,   H,   H
+12, S3/H,S2/H,S0/H,   S,   S,   H,   H,    H,   H,   H
+11,    D,   D,   D,   D,   D,   D,   D,    D,   D,D0/H
+10,    D,   D,   D,   D,   D,   D,   D,D-1/H,D4/H,D3/H
+ 9, D1/H,D0/H,   D,   D,   D,D3/H,   D,    D,   D,   D
+ 8,    H,   H,D5/H,D3/H,D2/H,   H,   H,    H,   H,   H
+ 7,    S,   S,   S,   S,   S,   S,   S,    S,   S,   S
+ 6,    S,   S,   S,   S,   S,   S,   S,    S,   S,   S
+ 5,    S,   S,   S,   S,   S,   S,   S,    S,   S,   S
+ 4,    S,   S,   S,   S,   S,   S,   S,    S,   S,   S

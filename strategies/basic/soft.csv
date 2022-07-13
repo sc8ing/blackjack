@@ -1,10 +1,10 @@
-x,2,3,4,5,6,7,8,9,10,11
-21,S,S,S,S,S,S,S,S,S,S
-20,S,S,S,S,S,S,S,S,S,S
-19,S,S,S,S,S,S,S,S,S,S
-18,S,S,S,S,S,S,S,S,S,S
-17,S,S,S,S,S,S,S,S,S,S
-16,S,S,S,S,S,S,S,S,S,S
-15,S,S,S,S,S,S,S,S,S,S
-14,S,S,S,S,S,S,S,S,S,S
-13,S,S,S,S,S,S,S,S,S,S
+ x,   2,   3,      4,      5,      6,7,8,9,10,11
+21,   S,   S,      S,      S,      S,S,S,S, S, S
+20,   S,   S,   H6/S,   H5/S,   H4/S,S,S,S, S, S
+19,   S,H5/S,   H3/S,   H1/S,   H0/S,S,S,S, S, S
+18,D0/S,   D,      D,      D,      D,S,S,H, H, H
+17,D1/H,   D,      D,      D,      D,H,H,H, H, H
+16,   H,D4/H,      D,      D,      D,H,H,H, H, H
+15,   H,   H,   D0/H,      D,      D,H,H,H, H, H
+14,   H,   H,   D1/H,  D-1/H,      D,H,H,H, H, H
+13,   H,   H,   D3/H,   D0/H,      D,H,H,H, H, H

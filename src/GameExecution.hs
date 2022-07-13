@@ -91,7 +91,7 @@ evaluateHand dealerHand playerHand bet =
     in
     -- Doesn't matter if the dealer had blackjack because we wouldn't be playing out the hand if that were the case
     if handSum == 21 && length playerHand == 2        then  bet * 3 / 2 -- blackjack!
-    else if handSum > 21                              then -bet         -- we busted, doesn't matter what dealer did -> lost
+    else if handSum > 21 || handSum == 0              then -bet         -- we busted or surrendered, doesn't matter what dealer did -> lost
     else if (dealerSum > 21) || (dealerSum < handSum) then  bet         -- dealer busted or player was higher -> won
     else if dealerSum > handSum                       then -bet         -- no one busted, but player lost
     else                                                    0           -- push

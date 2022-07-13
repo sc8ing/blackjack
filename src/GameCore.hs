@@ -6,10 +6,10 @@ module GameCore where
 import Control.Monad.Random
 import Control.Monad.State
 import Data.Char (toLower)
+import Data.Default
 import Data.Map (Map, (!))
 import qualified Data.Map as Map
 import System.Random.Shuffle
-import Data.Default
 
 data Card = Two
           | Three
@@ -43,43 +43,40 @@ data Move = Stand
           | Surrender
   deriving (Show, Eq)
 instance Read Move where
-  readsPrec _ s = case toLower <$> s of
-    ['s']      -> [(Stand, "")]
-    ['h']      -> [(Hit, "")]
-    ['d']      -> [(Double, "")]
-    ['s', 'p'] -> [(Split, "")]
-    ['s', 'u'] -> [(Surrender, "")]
-    _ -> error $ "Couldn't parse move from " <> s
+    readsPrec _ s = case toLower <$> s of
+        ['s']      -> [(Stand, "")]
+        ['h']      -> [(Hit, "")]
+        ['d']      -> [(Double, "")]
+        ['s', 'p'] -> [(Split, "")]
+        ['s', 'u'] -> [(Surrender, "")]
+        _ -> error $ "Couldn't parse move from " <> s
 
-data Rules = Rules
-  { _shoeDecks :: Int
-  , _penetration :: Float -- percent of shoe
-  , _minBet :: Int
-  } deriving (Show)
+data Rules = Rules { _shoeDecks :: Int
+                   , _penetration :: Float -- percent of shoe
+                   , _minBet :: Int
+                   } deriving (Show)
 instance Default Rules where
-  def = Rules 6 0.8 5
+    def = Rules 6 0.8 5
 
 type MoveChooser = GameState -> Card -> Hand -> Move
 type BetChooser = GameState -> Float
 type InsuranceChooser = GameState -> Hand -> Bool
-data Strategy = Strategy
-  { _chooseMove :: MoveChooser
-  , _chooseBet :: BetChooser
-  , _chooseInsurance :: InsuranceChooser
-  }
+data Strategy = Strategy { _chooseMove :: MoveChooser
+                         , _chooseBet :: BetChooser
+                         , _chooseInsurance :: InsuranceChooser
+                         }
 instance Default Strategy where
-  def = Strategy { _chooseMove = const . const . const Stand
-                 , _chooseBet = const 5
-                 , _chooseInsurance = const . const False
-                 }
+    def = Strategy { _chooseMove = const . const . const Stand
+                   , _chooseBet = const 5
+                   , _chooseInsurance = const . const False
+                   }
 
-data GameState = GameState
-  { _cardsUnplayed :: [Card]
-  , _cardsPlayed :: [Card]
-  , _bankroll :: Float
-  , _rules :: Rules
-  , _playerStrategy :: Strategy
-  }
+data GameState = GameState { _cardsUnplayed :: [Card]
+                           , _cardsPlayed :: [Card]
+                           , _bankroll :: Float
+                           , _rules :: Rules
+                           , _playerStrategy :: Strategy
+                           }
 
 ----------------------------------------------------------------------------------------------------
 -- calculation helpers
@@ -87,8 +84,8 @@ data GameState = GameState
 cardSum :: Hand -> HandScore
 cardSum (Ace : rest) = Soft 11 <> cardSum rest
 cardSum (card : rest) =
-  let cardVals = Map.fromList $ zip [Two .. King] ([2..10] <> [10, 10, 10]) in
-  Hard (cardVals ! card) <> cardSum rest
+    let cardVals = Map.fromList $ zip [Two .. King] ([2..10] <> [10, 10, 10]) in
+    Hard (cardVals ! card) <> cardSum rest
 cardSum [] = Hard 0
 
 handScoreInt :: HandScore -> Int
@@ -112,7 +109,7 @@ trueCount shoeDecks cardsPlayed =
 
 trueCountFromGameState :: GameState -> Float
 trueCountFromGameState state =
-  trueCount (_shoeDecks . _rules $ state) (_cardsPlayed state)
+    trueCount (_shoeDecks . _rules $ state) (_cardsPlayed state)
 
 ----------------------------------------------------------------------------------------------------
 -- setup

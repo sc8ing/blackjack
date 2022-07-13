@@ -52,7 +52,7 @@ playShoe = do
          -- just give the bet back cause it was a push
          else adjustBankroll bet >> pure ()
     -- skip playing out the hand and go to yellow card checking
-    -- TODO do you still play out the hand?
+    -- (don't play out the hand)
     else if dealerBj && not playerBj then pure ()
 
     -- get bet back + payout of 3:2 & skip playing rest of hand
@@ -71,41 +71,41 @@ playShoe = do
 playOutHand :: MonadState GameState m => Hand -> Float -> Card -> Card -> m ()
 playOutHand hand bet dealerUp dealerDown =
     let playHand curHand curBet = case cardSum curHand of
-            Hard n | n > 21 ->
-                pure []
-            Soft n | n > 21 ->
-                pure []
-            Soft n | n == 21 ->
-                -- TODO blackjack or just 21?
-                -- if length curHand == 2 then Stand else
-                pure [(curHand, curBet)]
-            Hard n | n == 21 ->
-                -- TODO blackjack?
-                -- if length curHand == 2 then error "should have already checked for blackjack" else
-                pure [(curHand, curBet)]
-            -- If we don't have blackjack & haven't busted, decide what to do
-            _ -> get >>= \state -> case (_chooseMove . _playerStrategy) state state dealerUp curHand of
-                Stand ->
-                  pure [(curHand, curBet)]
-                Hit -> do
-                  c <- drawShownCard
-                  playHand (c : curHand) curBet
-                Double -> do
-                  c <- drawShownCard
-                  adjustBankroll (- curBet)
-                  pure [(c : curHand, curBet * 2)]
-                Split ->
-                  case curHand of
-                    [c1, c2] | c1 == c2 -> do
-                      (c1', c2') <- draw2
-                      adjustBankroll (- curBet)
-                      hands1 <- playHand [c1, c1'] curBet
-                      hands2 <- playHand [c2, c2'] curBet
-                      pure (hands1 <> hands2)
-                    _ -> error "can't split this"
-                Surrender -> do
-                  adjustBankroll (curBet / 2)
-                  pure []
+         Hard n | n > 21 ->
+             pure []
+         Soft n | n > 21 ->
+             pure []
+         Soft n | n == 21 ->
+             -- TODO blackjack or just 21?
+             -- if length curHand == 2 then Stand else
+             pure [(curHand, curBet)]
+         Hard n | n == 21 ->
+             -- TODO blackjack?
+             -- if length curHand == 2 then error "should have already checked for blackjack" else
+             pure [(curHand, curBet)]
+         -- If we don't have blackjack & haven't busted, decide what to do
+         _ -> get >>= \state -> case (_chooseMove . _playerStrategy) state state dealerUp curHand of
+             Stand ->
+               pure [(curHand, curBet)]
+             Hit -> do
+               c <- drawShownCard
+               playHand (c : curHand) curBet
+             Double -> do
+               c <- drawShownCard
+               adjustBankroll (- curBet)
+               pure [(c : curHand, curBet * 2)]
+             Split ->
+               case curHand of
+                 [c1, c2] | c1 == c2 -> do
+                   (c1', c2') <- draw2
+                   adjustBankroll (- curBet)
+                   hands1 <- playHand [c1, c1'] curBet
+                   hands2 <- playHand [c2, c2'] curBet
+                   pure (hands1 <> hands2)
+                 _ -> error "can't split this"
+             Surrender -> do
+               adjustBankroll (curBet / 2)
+               pure []
     in do
         -- these are awaiting evaluation against the dealer
         handBets <- playHand hand bet

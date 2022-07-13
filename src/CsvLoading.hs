@@ -81,8 +81,8 @@ parseRawCsvMove rawMove =
                 altMove = read alt :: Move
                 countThresh = read $ dropWhile (not . isPartOfCount) moveCond
             in
-            Right (move, countThresh, altMove)
-        _ -> error ""
+            trace ("parsed move from " <> rawMove) $ traceShowId $ Right (move, countThresh, altMove)
+        _ -> error $ "invalid move from CSV: " <> rawMove
 
 getRowColumn :: CSV -> Int -> Int -> String
 getRowColumn csv row column =

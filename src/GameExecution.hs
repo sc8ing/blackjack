@@ -16,124 +16,130 @@ import qualified System.Random.Shuffle
 import System.Random.Shuffle (shuffleM)
 import Text.CSV
 
--- | Play n shoes sequentially with the end state of each feeding into the next
+-- | Play n shoes sequentially with the end state of each feeding into the next.
+-- | Returns the final bankroll player's left with.
 playShoes :: MonadRandom m => GameState -> Int -> m Float
 playShoes initState n = do
-    endState <- foldlM (\state' _ -> fmap runPlayNewShoe (resetGameStateShoe state'))
+    endState <- foldlM (\state' _ -> fmap runPlayShoe (resetGameStateShoe state'))
                        initState
                        [1..n]
-    pure $ _bankroll endState / fromIntegral n
+    pure $ _bankroll endState
 
-runPlayNewShoe :: GameState -> GameState
-runPlayNewShoe initState =
+runPlayShoe :: GameState -> GameState
+runPlayShoe initState =
     let (_, finalState) = runState playShoe initState in
     finalState
 
+-- | Keep playing hands until the yellow card's been used
 playShoe :: (MonadState GameState m) => m ()
 playShoe = do
-    bet         <- gets (_chooseBet . _playerStrategy) <*> get
-    if bet <= 0 then error "negative bet!" else pure ()
-    adjustBankroll (-bet)
-
-    dealerUp    <- drawShownCard
-    dealerDown  <- drawHiddenCard
-    hand        <- fmap (\(c1, c2) -> [c1, c2]) draw2
-
-    state <- get
-    chooseInsurance <- gets (_chooseInsurance . _playerStrategy)
-    hasInsurance <- if dealerUp == Ace && chooseInsurance state hand
-                    then adjustBankroll (bet / 2) >> pure True
-                    else pure False
-
-    let dealerBj = (handScoreInt . cardSum) [dealerUp, dealerDown] == 21
-        playerBj = (handScoreInt . cardSum) hand == 21
-    if dealerBj && playerBj
-    then if hasInsurance
-         -- gets bet back from push, plus 2:1 pay on insurance bet
-         then adjustBankroll (bet + (bet / 2) * 3) >> pure ()
-         -- just give the bet back cause it was a push
-         else adjustBankroll bet >> pure ()
-    -- skip playing out the hand and go to yellow card checking
-    -- (don't play out the hand)
-    else if dealerBj && not playerBj then pure ()
-
-    -- get bet back + payout of 3:2 & skip playing rest of hand
-    else if not dealerBj && playerBj then adjustBankroll (bet + bet * 3 / 2) >> pure ()
-    -- both not blackjack
-    else playOutHand hand bet dealerUp dealerDown >> pure ()
-
+    playHand
     cardsPlayed <- gets _cardsPlayed
     if Yellow `elem` cardsPlayed then pure () -- end of shoe
     else playShoe
 
--- playHand might end up playing multiple hands if splits happen!
--- so it returns a list of hands & their bets waiting to go against the
--- dealer's hand. In the case of surrendering, busting or blackjack,
--- it gives an empty list because there's nothing for the dealer to do.
-playOutHand :: MonadState GameState m => Hand -> Float -> Card -> Card -> m ()
-playOutHand hand bet dealerUp dealerDown =
-    let playHand curHand curBet = case cardSum curHand of
-         Hard n | n > 21 ->
-             pure []
-         Soft n | n > 21 ->
-             pure []
-         Soft n | n == 21 ->
-             -- TODO blackjack or just 21?
-             -- if length curHand == 2 then Stand else
-             pure [(curHand, curBet)]
-         Hard n | n == 21 ->
-             -- TODO blackjack?
-             -- if length curHand == 2 then error "should have already checked for blackjack" else
-             pure [(curHand, curBet)]
-         -- If we don't have blackjack & haven't busted, decide what to do
-         _ -> get >>= \state -> case (_chooseMove . _playerStrategy) state state dealerUp curHand of
-             Stand ->
-               pure [(curHand, curBet)]
-             Hit -> do
-               c <- drawShownCard
-               playHand (c : curHand) curBet
-             Double -> do
-               c <- drawShownCard
-               adjustBankroll (- curBet)
-               pure [(c : curHand, curBet * 2)]
-             Split ->
-               case curHand of
+playHand :: MonadState GameState m => m ()
+playHand = do
+    bet         <- gets (_chooseBet . _playerStrategy) <*> get
+    if bet <= 0 then error "negative bet!" else pure ()
+
+    dealerUp    <- drawShownCard
+    dealerDown  <- drawHiddenCard
+    playerHand  <- fmap (\(c1, c2) -> [c1, c2]) draw2
+
+    insChooser  <- gets (_chooseInsurance . _playerStrategy)
+    insState    <- get
+    let tookIns = dealerUp == Ace && insChooser insState playerHand
+
+    let dealerBj = (handScoreInt . cardSum) [dealerUp, dealerDown] == 21
+        playerBj = (handScoreInt . cardSum) playerHand == 21
+    case (dealerBj, playerBj) of
+         -- 2:1 pay on insurance bet ((bet / 2) * 2) and push on the initial bet
+        (True, True) | tookIns ->
+            trace ("both blackjack & took insurance -> won " <> show bet) adjustBankroll bet
+        -- nothing paid on a blackjack push? TODO is this true?
+        (True, True) ->
+            trace "both blackjack & no insurance -> no money change" pure ()
+        -- lost to dealer blackjack
+        (True, False) ->
+            trace ("dealer blackjacked & not us -> lost " <> show bet) adjustBankroll (-bet)
+        -- 3:2 pay on blackjack
+        (False, True) ->
+            trace ("we blackjacked & the dealer didn't! -> won " <> show (bet * 3 / 2)) adjustBankroll (bet * 3 / 2)
+        -- normal play (no initial blackjacks, but could still get one if splitting aces)
+        (False, False) -> do
+            endPlayerHandBets <- playOutPlayerHand dealerUp dealerDown playerHand bet
+            -- add the hidden dealer card to the cards played list so cardsPlayed is accurate next round
+            state <- get
+            put state { _cardsPlayed = dealerDown : _cardsPlayed state }
+            -- only play out the dealer's hand if there's a non blackjack and unbusted player hand, cause that's the rules
+            let isBlackjack hand = (handScoreInt . cardSum) hand == 21 && length hand == 2
+                busted hand = (handScoreInt . cardSum) hand > 21
+            endDealerHand <- if all (\h -> isBlackjack h || busted h) (fmap fst endPlayerHandBets)
+                             then pure [dealerUp, dealerDown]
+                             else playOutDealerHand dealerUp dealerDown
+            let totalWon = sum $ fmap (uncurry (evaluateHand endDealerHand)) endPlayerHandBets
+            trace ("final player hands: " <> show endPlayerHandBets
+                  <> "final dealer hand: " <> show endDealerHand
+                  <> "totalWon: " <> show totalWon) $ adjustBankroll totalWon
+
+-- | Compare the player's hand to the dealer's and return how much the player won (negative for loss).
+evaluateHand :: Hand -> Hand -> Float -> Float
+evaluateHand dealerHand playerHand bet =
+    let handSum = (handScoreInt . cardSum) playerHand
+        dealerSum = (handScoreInt . cardSum) dealerHand
+    in
+    -- Doesn't matter if the dealer had blackjack because we wouldn't be playing out the hand if that were the case
+    if handSum == 21 && length playerHand == 2        then  bet * 3 / 2 -- blackjack!
+    else if handSum > 21                              then -bet         -- we busted, doesn't matter what dealer did -> lost
+    else if (dealerSum > 21) || (dealerSum < handSum) then  bet         -- dealer busted or player was higher -> won
+    else if dealerSum > handSum                       then -bet         -- no one busted, but player lost
+    else                                                    0           -- push
+
+playOutDealerHand :: MonadState GameState m => Card -> Card -> m Hand
+playOutDealerHand dealerUp dealerDown = do
+    let playDealer cards = case cardSum cards of
+            Hard n | n >= 17 -> pure cards
+            Soft n | n > 17  -> pure cards
+            _                -> drawShownCard >>= playDealer . (: cards)
+    playDealer [dealerUp, dealerDown]
+
+-- | Play out the hand until all hands (i.e. after splits) have busted, stood, surrendered, doubled, or hit 21.
+-- | In the case of surrendering, returns an empty hand with a bet. Otherwise, a tuple of hands and their bets are given.
+playOutPlayerHand :: MonadState GameState m => Card -> Card -> Hand -> Float -> m [(Hand, Float)]
+playOutPlayerHand dealerUp dealerDown hand bet = case cardSum hand of
+     Hard n | n > 21 ->
+         pure [(hand, bet)]
+     Soft n | n > 21 ->
+         pure [(hand, bet)]
+     Soft n | n == 21 ->
+         pure [(hand, bet)]
+     Hard n | n == 21 ->
+         pure [(hand, bet)]
+     -- If we don't have 21 & haven't busted, decide what to do
+     _ -> get >>= \state -> case (_chooseMove . _playerStrategy) state state dealerUp hand of
+         Stand ->
+             pure [(hand, bet)]
+         Hit -> do
+             c <- drawShownCard
+             playOutPlayerHand dealerUp dealerDown (c : hand) bet
+         Double -> do
+             c <- drawShownCard
+             pure [(c : hand, bet * 2)]
+         Split ->
+             case hand of
                  [c1, c2] | c1 == c2 -> do
-                   (c1', c2') <- draw2
-                   adjustBankroll (- curBet)
-                   hands1 <- playHand [c1, c1'] curBet
-                   hands2 <- playHand [c2, c2'] curBet
-                   pure (hands1 <> hands2)
-                 _ -> error "can't split this"
-             Surrender -> do
-               adjustBankroll (curBet / 2)
-               pure []
-    in do
-        -- these are awaiting evaluation against the dealer
-        handBets <- playHand hand bet
+                     (c1', c2') <- draw2
+                     hands1 <- playOutPlayerHand dealerUp dealerDown [c1, c1'] bet
+                     hands2 <- playOutPlayerHand dealerUp dealerDown [c2, c2'] bet
+                     pure (hands1 <> hands2)
+                 _ -> error $ "asked to split " <> show hand <> " but that's against the rules"
+         Surrender ->
+             pure [([], bet / 2)]
 
-        -- add the hidden dealer card to the cards played list so it's
-        -- accurate when next calling chooseMove/Bet/Insurance functions
-        state <- get
-        put state { _cardsPlayed = dealerDown : _cardsPlayed state }
-
-        let playDealer cards = case cardSum cards of
-                Hard n | n >= 17 -> pure cards
-                Soft n | n > 17  -> pure cards
-                _                -> drawShownCard >>= playDealer . (: cards)
-        dealerSum <- handScoreInt . cardSum <$> playDealer [dealerUp, dealerDown]
-
-        let doHandVsDealer (hand, bet) =
-                let handSum = (handScoreInt . cardSum) hand
-                in
-                if      dealerSum > handSum then adjustBankroll 0
-                else if dealerSum < handSum then adjustBankroll (bet * 2)
-                else                             adjustBankroll bet
-        traverse_ doHandVsDealer handBets
-
-adjustBankroll :: MonadState GameState m => Float -> m Float
+-- | Add an amount to the player's bankroll
+adjustBankroll :: MonadState GameState m => Float -> m ()
 adjustBankroll amount = do
   s <- get
   let new = _bankroll s + amount
   put s { _bankroll = new }
-  pure new

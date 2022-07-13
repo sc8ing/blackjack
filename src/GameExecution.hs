@@ -8,7 +8,7 @@ import Control.Monad.Random
 import Control.Monad.State
 import CsvLoading (loadChooseMoveFromCsv)
 import Data.Char (isNumber)
-import Data.Foldable (traverse_)
+import Data.Foldable (traverse_, foldlM)
 import Data.List.Split (splitOn)
 import Debug.Trace
 import GameCore
@@ -17,10 +17,12 @@ import System.Random.Shuffle (shuffleM)
 import Text.CSV
 
 -- | Play n shoes sequentially with the end state of each feeding into the next
-playShoes :: GameState -> Int -> Float
-playShoes initState n =
-    let endState = foldl (\state' _ -> runPlayNewShoe state') initState [1..n] in
-    _bankroll endState / fromIntegral n
+playShoes :: MonadRandom m => GameState -> Int -> m Float
+playShoes initState n = do
+    endState <- foldlM (\state' _ -> fmap runPlayNewShoe (resetGameStateShoe state'))
+                       initState
+                       [1..n]
+    pure $ _bankroll endState / fromIntegral n
 
 runPlayNewShoe :: GameState -> GameState
 runPlayNewShoe initState =

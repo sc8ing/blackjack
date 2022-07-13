@@ -78,6 +78,20 @@ data GameState = GameState { _cardsUnplayed :: [Card]
                            , _playerStrategy :: Strategy
                            }
 
+makeGameState :: MonadRandom m => Rules -> Strategy -> Float -> m GameState
+makeGameState rules strategy bankroll = do
+    initShoe  <- makeShoe (_shoeDecks rules) (_penetration rules)
+    pure GameState { _cardsUnplayed = initShoe
+                   , _cardsPlayed = []
+                   , _bankroll = bankroll
+                   , _rules = rules
+                   , _playerStrategy = strategy }
+
+-- | Shuffle the cards and put them back in the shoe, keeping the rest the same
+resetGameStateShoe :: MonadRandom m => GameState -> m GameState
+resetGameStateShoe state =
+    makeGameState (_rules state) (_playerStrategy state) (_bankroll state)
+
 ----------------------------------------------------------------------------------------------------
 -- calculation helpers
 ----------------------------------------------------------------------------------------------------

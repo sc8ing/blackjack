@@ -28,6 +28,7 @@ library
       CsvLoading
       GameCore
       GameExecution
+      Repl
   other-modules:
       Paths_blackjack
   hs-source-dirs:

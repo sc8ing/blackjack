@@ -1,11 +1,11 @@
- x,    2,    3,     4,     5,     6,     7,     8, 9,10,    11
-11,   sp,   sp,    sp,    sp,    sp,    sp,    sp,sp,sp,    sp
-10,    h,sp8/h, sp6/h, sp5/h, sp4/h,     h,     h, h, h,     h
- 9,   sp,   sp,    sp,    sp,    sp, sp3/h,    sp,sp,sp, sp1/h
- 8,   sp,   sp,    sp,    sp,    sp,    sp,    sp,sp,sp,sp-1/h
- 7,   sp,   sp,    sp,    sp,    sp,    sp,     h, h, h,     h
- 6,   sp,   sp,    sp,    sp,    sp,     h,     h, h, h,     h
- 5,    h,    h,     h,     h,     h,     h,     h, h, h,     h
- 4,    h,    h, sp3/h,sp-1/h,    sp,     h,     h, h, h,     h
- 3,sp0/h,   sp,    sp,    sp,    sp,    sp, sp4/h, h, h,     h
- 2,   sp,   sp,    sp,    sp,    sp,    sp, sp5/h, h, h,     h
+    x,    2,    3,     4,     5,     6,     7,     8, 9,10,    11
+11-11,   sp,   sp,    sp,    sp,    sp,    sp,    sp,sp,sp,    sp
+10-10,    h,sp8/h, sp6/h, sp5/h, sp4/h,     h,     h, h, h,     h
+  9-9,   sp,   sp,    sp,    sp,    sp, sp3/h,    sp,sp,sp, sp1/h
+  8-8,   sp,   sp,    sp,    sp,    sp,    sp,    sp,sp,sp,sp-1/h
+  7-7,   sp,   sp,    sp,    sp,    sp,    sp,     h, h, h,     h
+  6-6,   sp,   sp,    sp,    sp,    sp,     h,     h, h, h,     h
+  5-5,    h,    h,     h,     h,     h,     h,     h, h, h,     h
+  4-4,    h,    h, sp3/h,sp-1/h,    sp,     h,     h, h, h,     h
+  3-3,sp0/h,   sp,    sp,    sp,    sp,    sp, sp4/h, h, h,     h
+  2-2,   sp,   sp,    sp,    sp,    sp,    sp, sp5/h, h, h,     h

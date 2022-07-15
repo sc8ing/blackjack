@@ -102,9 +102,10 @@ cardSum (card : rest) =
     Hard (cardVals ! card) <> cardSum rest
 cardSum [] = Hard 0
 
-handScoreInt :: HandScore -> Int
-handScoreInt (Soft n) = n
-handScoreInt (Hard n) = n
+handIntValue :: Hand -> Int
+handIntValue hand = case cardSum hand of
+    Soft n -> n
+    Hard n -> n
 
 -- | Hi-Lo count of cards played
 runningCount :: [Card] -> Int

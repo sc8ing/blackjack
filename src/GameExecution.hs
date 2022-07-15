@@ -51,21 +51,21 @@ playHand = do
     insState    <- get
     let tookIns = dealerUp == Ace && insChooser insState playerHand
 
-    let dealerBj = (handScoreInt . cardSum) [dealerUp, dealerDown] == 21
-        playerBj = (handScoreInt . cardSum) playerHand == 21
+    let dealerBj = handIntValue [dealerUp, dealerDown] == 21
+        playerBj = handIntValue playerHand == 21
     case (dealerBj, playerBj) of
          -- 2:1 pay on insurance bet ((bet / 2) * 2) and push on the initial bet
         (True, True) | tookIns ->
-            trace ("both blackjack & took insurance -> won " <> show bet) adjustBankroll bet
+            trace ("both blackjack & took insurance " <> show playerHand <> " vs " <> show [dealerUp, dealerDown] <> " -> won " <> show bet) adjustBankroll bet
         -- nothing paid on a blackjack push? TODO is this true?
         (True, True) ->
-            trace "both blackjack & no insurance -> no money change" pure ()
+            trace ("both blackjack & no insurance " <> show playerHand <> " vs " <> show [dealerUp, dealerDown] <> " -> no money change ") pure ()
         -- lost to dealer blackjack
         (True, False) ->
-            trace ("dealer blackjacked & not us -> lost " <> show bet) adjustBankroll (-bet)
+            trace ("dealer blackjacked & not us -> lost " <> show playerHand <> " vs " <> show [dealerUp, dealerDown] <> " -> lost " <> show (-bet)) adjustBankroll (-bet)
         -- 3:2 pay on blackjack
         (False, True) ->
-            trace ("we blackjacked & the dealer didn't! -> won " <> show (bet * 3 / 2)) adjustBankroll (bet * 3 / 2)
+            trace ("we blackjacked & the dealer didn't! -> won " <> show playerHand <> " vs " <> show [dealerUp, dealerDown] <> " -> won " <> show (bet * 3 / 2)) adjustBankroll (bet * 3 / 2)
         -- normal play (no initial blackjacks, but could still get one if splitting aces)
         (False, False) -> do
             endPlayerHandBets <- playOutPlayerHand dealerUp dealerDown playerHand bet
@@ -73,21 +73,21 @@ playHand = do
             state <- get
             put state { _cardsPlayed = dealerDown : _cardsPlayed state }
             -- only play out the dealer's hand if there's a non blackjack and unbusted player hand, cause that's the rules
-            let isBlackjack hand = (handScoreInt . cardSum) hand == 21 && length hand == 2
-                busted hand = (handScoreInt . cardSum) hand > 21
+            let isBlackjack hand = handIntValue hand == 21 && length hand == 2
+                busted hand = handIntValue hand > 21
             endDealerHand <- if all (\h -> isBlackjack h || busted h) (fmap fst endPlayerHandBets)
                              then pure [dealerUp, dealerDown]
                              else playOutDealerHand dealerUp dealerDown
             let totalWon = sum $ fmap (uncurry (evaluateHand endDealerHand)) endPlayerHandBets
             trace ("final player hands: " <> show endPlayerHandBets
-                  <> "final dealer hand: " <> show endDealerHand
-                  <> "totalWon: " <> show totalWon) $ adjustBankroll totalWon
+                  <> " final dealer hand: " <> show endDealerHand
+                  <> " totalWon: " <> show totalWon) $ adjustBankroll totalWon
 
 -- | Compare the player's hand to the dealer's and return how much the player won (negative for loss).
 evaluateHand :: Hand -> Hand -> Float -> Float
 evaluateHand dealerHand playerHand bet =
-    let handSum = (handScoreInt . cardSum) playerHand
-        dealerSum = (handScoreInt . cardSum) dealerHand
+    let handSum = handIntValue playerHand
+        dealerSum = handIntValue dealerHand
     in
     -- Doesn't matter if the dealer had blackjack because we wouldn't be playing out the hand if that were the case
     if handSum == 21 && length playerHand == 2        then  bet * 3 / 2 -- blackjack!

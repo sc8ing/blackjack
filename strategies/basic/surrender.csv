@@ -1,19 +1,19 @@
- x,2,3,4,5,6,7,    8,    9,10,11
-21,h,h,h,h,h,h,    h,    h, h, h
-20,h,h,h,h,h,h,    h,    h, h, h
-19,h,h,h,h,h,h,    h,    h, h, h
-18,h,h,h,h,h,h,    h,    h, h, h
-17,h,h,h,h,h,h,    h,    h, h, h
-16,h,h,h,h,h,h,su3/h,su1/h,su,su
-15,h,h,h,h,h,h,    h,    h, h, h
-14,h,h,h,h,h,h,    h,    h, h, h
-13,h,h,h,h,h,h,    h,    h, h, h
-12,h,h,h,h,h,h,    h,    h, h, h
-11,h,h,h,h,h,h,    h,    h, h, h
-10,h,h,h,h,h,h,    h,    h, h, h
- 9,h,h,h,h,h,h,    h,    h, h, h
- 8,h,h,h,h,h,h,    h,    h, h, h
- 7,h,h,h,h,h,h,    h,    h, h, h
- 6,h,h,h,h,h,h,    h,    h, h, h
- 5,h,h,h,h,h,h,    h,    h, h, h
- 4,h,h,h,h,h,h,    h,    h, h, h
+ x,2,3,4,5,6,7,    8,      9,    10,    11
+21,h,h,h,h,h,h,    h,      h,     h,     h
+20,h,h,h,h,h,h,    h,      h,     h,     h
+19,h,h,h,h,h,h,    h,      h,     h,     h
+18,h,h,h,h,h,h,    h,      h,     h,     h
+17,h,h,h,h,h,h,    h,      h,     h,    su
+16,h,h,h,h,h,h,su4/h, su-1/h,    su,    su
+15,h,h,h,h,h,h,    h,  su2/h, su0/h,su-1/h
+14,h,h,h,h,h,h,    h,      h, su3/h, su4/h
+13,h,h,h,h,h,h,    h,      h,     h,     h
+12,h,h,h,h,h,h,    h,      h,     h,     h
+11,h,h,h,h,h,h,    h,      h,     h,     h
+10,h,h,h,h,h,h,    h,      h,     h,     h
+ 9,h,h,h,h,h,h,    h,      h,     h,     h
+ 8,h,h,h,h,h,h,    h,      h,     h,     h
+ 7,h,h,h,h,h,h,    h,      h,     h,     h
+ 6,h,h,h,h,h,h,    h,      h,     h,     h
+ 5,h,h,h,h,h,h,    h,      h,     h,     h
+ 4,h,h,h,h,h,h,    h,      h,     h,     h

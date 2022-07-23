@@ -7,14 +7,14 @@ where
 
 import Control.Monad.Cont
 import Data.Char (isNumber)
+import Data.List (sort)
 import Data.List.Split (splitOn)
+import Data.Map ((!?))
 import Debug.Trace (trace, traceShowId)
 import GameCore
+import qualified Data.Map as Map
 import Text.CSV (CSV, parseCSVFromFile, Field)
 import Text.Printf (printf)
-import Data.Map ((!?))
-import qualified Data.Map as Map
-import Data.List (sort)
 import Text.Read (readMaybe)
 
 -- | Either a move to make no matter what or a move to make when >= some count, otherwise some other move

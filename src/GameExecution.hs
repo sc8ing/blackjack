@@ -123,9 +123,13 @@ playOutPlayerHand dealerUp dealerDown hand bet = case cardSum hand of
          Hit -> do
              c <- drawShownCard
              playOutPlayerHand dealerUp dealerDown (c : hand) bet
-         Double -> do
+         -- can't double if not first move, so hit otherwise for now
+         Double | length hand == 2 -> do
              c <- drawShownCard
              pure [(c : hand, bet * 2)]
+         Double -> do
+             c <- drawShownCard
+             playOutPlayerHand dealerUp dealerDown (c : hand) bet
          Split ->
              case hand of
                  [c1, c2] | c1 == c2 -> do
